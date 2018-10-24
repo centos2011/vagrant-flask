@@ -1,0 +1,21 @@
+/etc/logrotate.d/flask_app_log
+/webapps/devops/log/flask_app/app.out.log {
+	daily
+	rotate 12
+	compress
+	delaycompress
+	missingok
+        size 100M
+	notifempty
+	create 644 root root
+}
+/webapps/devops/log/flask_app/app.err.log {
+	daily
+	rotate 12
+	compress
+	delaycompress
+	missingok
+        size 100M
+	notifempty
+	create 644 root root
+}

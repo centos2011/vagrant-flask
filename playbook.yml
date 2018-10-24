@@ -1,0 +1,63 @@
+---
+- hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+  
+  - name: Install packages
+    apt: 
+      pkg: ['git', 'python-pip', 'supervisor', 'nginx', 'logrotate']
+
+  - name: Clone the reposiroty
+    git:
+      repo: 'https://bitbucket.org/azneita/devops-challenge.git'
+      dest: /webapps/devops
+  
+  - name: Install specified python requirements
+    pip:
+      requirements: /webapps/devops/requirements.txt
+      umask: "0022"
+
+  - name: Install gunicorn
+    pip:
+      name: gunicorn
+      umask: '0022'
+
+  - name: copy config files
+    copy:
+      src: 'src/{{ item.src }}'
+      dest: '{{ item.dest }}'
+    with_items:
+    - { src: 'flask_app.conf', dest: '/etc/supervisor/conf.d/flask_app.conf' }
+    - { src: 'flask_app',  dest: '/etc/logrotate.d/flask_app' }
+    - { src: 'virtual.conf',   dest: '/etc/nginx/conf.d/virtual.conf' }
+
+  - name: Create log folder
+    file: 
+      path: /webapps/devops/log
+      owner: vagrant
+      group: vagrant
+      mode: 0755 
+      state: directory    
+  
+
+  - name: start supervisor
+    command: service supervisor restart
+
+  - name: start nginx
+    command: service nginx restart
+
+  - name: Set ownership to vagrant
+    file:
+      path: /webapps
+      owner: vagrant
+      group: vagrant
+      recurse: yes
+
+  - name: Update Timezone to Etc/UTC
+    copy: content="Etc/UTC\n" dest=/etc/timezone owner=root group=root mode=0644
+    register: timezone
+
+  - name: Reconfigure Timezone Data
+    shell: dpkg-reconfigure -f noninteractive tzdata
+    when: timezone.changed
